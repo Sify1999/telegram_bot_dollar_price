@@ -34,8 +34,8 @@ def persian_to_english_numbers(text):
 
 def translate_persian_date(text):
     days_fa = {
-        "شنبه": "Saturday", "یکشنبه": "Sunday", "دوشنبه": "Monday",
-        "سه شنبه": "Tuesday", "چهارشنبه": "Wednesday",
+        "سه شنبه": "Tuesday", "شنبه": "Saturday", "یکشنبه": "Sunday", "دوشنبه": "Monday",
+        "چهارشنبه": "Wednesday",
         "پنجشنبه": "Thursday", "جمعه": "Friday",
     }
     months_fa = {
