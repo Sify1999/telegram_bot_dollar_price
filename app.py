@@ -11,7 +11,7 @@ from telegram.ext import (
     filters
 )
 
-API = os.getenv("API")
+API = os.getenv("API")  # Your bot token from env variable
 URL_PRICE = "https://alanchand.com/currencies-price"
 URL_DATE = "https://www.time.ir/"
 
@@ -69,13 +69,8 @@ def translate_persian_date(text):
     return text
 
 def safe_get_html(url):
-    """
-    Prevent bot from crashing when website is down.
-    """
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0",
-        }
+        headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, "html.parser")
         return soup
@@ -187,7 +182,11 @@ async def bot_added(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --------------------------------------------
 
 async def main():
-    app = ApplicationBuilder().token("YOUR_BOT_TOKEN_HERE").build()
+    if not API:
+        print("Error: API token not set in environment variable 'API'")
+        return
+
+    app = ApplicationBuilder().token(API).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("price", cmd_price))
