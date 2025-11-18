@@ -1,6 +1,5 @@
-import asyncio
-import requests
 import os
+import requests
 from bs4 import BeautifulSoup
 from telegram import Update
 from telegram.ext import (
@@ -10,6 +9,11 @@ from telegram.ext import (
     MessageHandler,
     filters
 )
+import nest_asyncio
+import asyncio
+
+# Allow nested event loops
+nest_asyncio.apply()
 
 API = os.getenv("API")  # Your bot token from env variable
 URL_PRICE = "https://alanchand.com/currencies-price"
@@ -64,6 +68,7 @@ def translate_persian_date(text):
         text = text.replace(fa, en)
     for fa, en in months_fa.items():
         text = text.replace(fa, en)
+
     return text
 
 def safe_get_html(url):
@@ -81,6 +86,7 @@ def get_price():
     soup = safe_get_html(URL_PRICE)
     if not soup:
         return DOLLAR_PRICE
+
     try:
         row = soup.find("tr", title="قیمت دلار آمریکا")
         price = persian_to_english_numbers(
@@ -97,6 +103,7 @@ def get_date():
     soup = safe_get_html(URL_DATE)
     if not soup:
         return TODAY_DATE
+
     try:
         fr = persian_to_english_numbers(
             soup.find("span", class_="TodayDate_root__title__value__yfkwD").text.strip()
@@ -184,11 +191,15 @@ async def main():
     app.add_handler(CommandHandler("price", cmd_price))
     app.add_handler(CommandHandler("id", getID))
     app.add_handler(CommandHandler("update", update_price))
-
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, bot_added))
 
     print("Bot running...")
     await app.run_polling()
 
+# Run the bot safely in any environment
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(main())
+    except RuntimeError:
+        asyncio.run(main())
