@@ -9,11 +9,6 @@ from telegram.ext import (
     MessageHandler,
     filters
 )
-import nest_asyncio
-import asyncio
-
-# Allow nested event loops
-nest_asyncio.apply()
 
 API = os.getenv("API")  # Your bot token from env variable
 URL_PRICE = "https://alanchand.com/currencies-price"
@@ -39,36 +34,21 @@ def persian_to_english_numbers(text):
 
 def translate_persian_date(text):
     days_fa = {
-        "شنبه": "Saturday",
-        "یکشنبه": "Sunday",
-        "دوشنبه": "Monday",
-        "سه‌شنبه": "Tuesday",
-        "سه شنبه": "Tuesday",
-        "چهارشنبه": "Wednesday",
-        "پنجشنبه": "Thursday",
-        "جمعه": "Friday",
+        "شنبه": "Saturday", "یکشنبه": "Sunday", "دوشنبه": "Monday",
+        "سه‌شنبه": "Tuesday", "سه شنبه": "Tuesday", "چهارشنبه": "Wednesday",
+        "پنجشنبه": "Thursday", "جمعه": "Friday",
     }
-
     months_fa = {
-        "فروردین": "Farvardin",
-        "اردیبهشت": "Ordibehesht",
-        "خرداد": "Khordad",
-        "تیر": "Tir",
-        "مرداد": "Mordad",
-        "شهریور": "Shahrivar",
-        "مهر": "Mehr",
-        "آبان": "Aban",
-        "آذر": "Azar",
-        "دی": "Dey",
-        "بهمن": "Bahman",
-        "اسفند": "Esfand",
+        "فروردین": "Farvardin", "اردیبهشت": "Ordibehesht", "خرداد": "Khordad",
+        "تیر": "Tir", "مرداد": "Mordad", "شهریور": "Shahrivar",
+        "مهر": "Mehr", "آبان": "Aban", "آذر": "Azar",
+        "دی": "Dey", "بهمن": "Bahman", "اسفند": "Esfand",
     }
 
     for fa, en in days_fa.items():
         text = text.replace(fa, en)
     for fa, en in months_fa.items():
         text = text.replace(fa, en)
-
     return text
 
 def safe_get_html(url):
@@ -86,7 +66,6 @@ def get_price():
     soup = safe_get_html(URL_PRICE)
     if not soup:
         return DOLLAR_PRICE
-
     try:
         row = soup.find("tr", title="قیمت دلار آمریکا")
         price = persian_to_english_numbers(
@@ -103,7 +82,6 @@ def get_date():
     soup = safe_get_html(URL_DATE)
     if not soup:
         return TODAY_DATE
-
     try:
         fr = persian_to_english_numbers(
             soup.find("span", class_="TodayDate_root__title__value__yfkwD").text.strip()
@@ -180,7 +158,7 @@ async def bot_added(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # MAIN
 # --------------------------------------------
 
-async def main():
+def run_bot():
     if not API:
         print("Error: API token not set in environment variable 'API'")
         return
@@ -194,12 +172,8 @@ async def main():
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, bot_added))
 
     print("Bot running...")
-    await app.run_polling()
+    app.run_polling()  # v20+ manages the asyncio loop internally
 
-# Run the bot safely in any environment
+# --------------------------------------------
 if __name__ == "__main__":
-    try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(main())
-    except RuntimeError:
-        asyncio.run(main())
+    run_bot()
