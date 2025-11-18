@@ -1,5 +1,6 @@
 import asyncio
 import requests
+import os
 from bs4 import BeautifulSoup
 from telegram import Update
 from telegram.ext import (
