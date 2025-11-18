@@ -62,10 +62,8 @@ def translate_persian_date(text):
 
     for fa, en in days_fa.items():
         text = text.replace(fa, en)
-
     for fa, en in months_fa.items():
         text = text.replace(fa, en)
-
     return text
 
 def safe_get_html(url):
@@ -83,7 +81,6 @@ def get_price():
     soup = safe_get_html(URL_PRICE)
     if not soup:
         return DOLLAR_PRICE
-
     try:
         row = soup.find("tr", title="قیمت دلار آمریکا")
         price = persian_to_english_numbers(
@@ -100,7 +97,6 @@ def get_date():
     soup = safe_get_html(URL_DATE)
     if not soup:
         return TODAY_DATE
-
     try:
         fr = persian_to_english_numbers(
             soup.find("span", class_="TodayDate_root__title__value__yfkwD").text.strip()
@@ -134,13 +130,11 @@ async def update_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     chat = update.effective_chat
 
-    # Only admin can update the channel
     if chat.type == "private" and user.id == ADMIN_ID:
         price = get_price()
         date = get_date()
         msg = f"{date}\nCurrent USD price: {price} Rials"
 
-        # Update existing message if exists
         if CHANNEL_ID in tracked_messages:
             message_id = tracked_messages[CHANNEL_ID]
             try:
@@ -154,13 +148,11 @@ async def update_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except:
                 pass
 
-        # Send new message
         sent = await context.bot.send_message(chat_id=CHANNEL_ID, text=msg)
         tracked_messages[CHANNEL_ID] = sent.message_id
         await update.message.reply_text("Sent new message to channel.")
         return
 
-    # For non-admin private users → send price
     if chat.type == "private" and user.id != ADMIN_ID:
         return await cmd_price(update, context)
 
@@ -196,7 +188,9 @@ async def main():
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, bot_added))
 
     print("Bot running...")
-    await app.run_polling()
+    await app.start()
+    await app.updater.start_polling()
+    await app.updater.idle()
 
 if __name__ == "__main__":
     asyncio.run(main())
