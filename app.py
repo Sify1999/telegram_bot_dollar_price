@@ -1,5 +1,7 @@
 import os
 import requests
+import asyncpg
+import asyncio
 from bs4 import BeautifulSoup
 from telegram import Update
 from telegram.ext import (
@@ -9,12 +11,11 @@ from telegram.ext import (
     MessageHandler,
     filters
 )
-
+DATABASE_URL = os.getenv("DATABASE_URL") # your Railway PostgreSQL URL
 API = os.getenv("API")  # Your bot token from env variable
 URL_PRICE = "https://alanchand.com/currencies-price"
 URL_DATE = "https://www.time.ir/"
 
-GROUP_ID = -5097868679
 ADMIN_ID = 119822289
 CHANNEL_ID = -1003477481048
 
@@ -22,9 +23,28 @@ tracked_messages = {}
 DOLLAR_PRICE = "Unknown"
 TODAY_DATE = "Unknown"
 
-# --------------------------------------------
-# Helpers
-# --------------------------------------------
+async def init_db():
+    global conn
+    try:
+        conn = await asyncpg.connect(DATABASE_URL)
+        print("Database connected!")
+    except Exception as e:
+        print("Failed to connect to database:", e)
+        conn = None
+
+
+async def set_value(conn, chat_id, message_id):
+    await conn.execute("""
+        INSERT INTO my_table (chat_id, message_id) VALUES ($1, $2)
+        ON CONFLICT (chat_id) DO UPDATE SET message_id = $2
+    """, chat_id, message_id)
+
+
+async def get_value(conn, chat_id):
+    return await conn.fetchval(
+        "SELECT message_id FROM my_table WHERE chat_id=$1", chat_id
+    )
+
 
 def persian_to_english_numbers(text):
     persian_numbers = "۰۱۲۳۴۵۶۷۸۹/"
@@ -95,10 +115,6 @@ def get_date():
     except:
         return TODAY_DATE
 
-# --------------------------------------------
-# Commands
-# --------------------------------------------
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hello!")
     print("start used")
@@ -106,8 +122,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     price = get_price()
     date = get_date()
+    chat = update.effective_chat
     msg = f"{date}\nCurrent USD price: {price} Rials"
-    await update.message.reply_text(msg)
+    sent = await context.bot.send_message(chat.id , text=msg)
+    await set_value(conn , chat.id , sent.message_id)
 
 async def getID(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(str(update.effective_chat.id))
@@ -115,34 +133,48 @@ async def getID(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def update_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     chat = update.effective_chat
-
+#for admin channel
     if chat.type == "private" and user.id == ADMIN_ID:
         price = get_price()
         date = get_date()
         msg = f"{date}\nCurrent USD price: {price} Rials"
 
-        if CHANNEL_ID in tracked_messages:
-            message_id = tracked_messages[CHANNEL_ID]
+        try:
+            await context.bot.send_message(
+                text=msg,
+                chat_id=CHANNEL_ID
+            )
+            await update.message.reply_text("Channel message updated.")
+            return
+        except:
+            pass
+#for users
+    if chat.type == "private" and user.id != ADMIN_ID:
+        return await cmd_price(update, context)
+#for groups 
+    if chat.type in ["group", "supergroup"]:
+        message_id = await get_value(conn , chat.id)
+        #if the group doesnt exists in database
+        if message_id == None:
+            price = get_price()
+            date = get_date()
+            msg = f"{date}\nCurrent USD price: {price} Rials"
             try:
-                await context.bot.edit_message_text(
-                    text=msg,
-                    chat_id=CHANNEL_ID,
-                    message_id=message_id
-                )
-                await update.message.reply_text("Channel message updated.")
-                return
+                sent = await context.bot.send_message(chat_id=chat.id , text=msg)
+                await set_value(conn , chat.id , sent.message_id)
+            except:
+                pass
+        #if the group exists in database
+        else:
+            price = get_price()
+            date = get_date()
+            msg = f"{date}\nCurrent USD price: {price} Rials"
+            try:
+                await context.bot.edit_message_text(text=msg , chat_id=chat.id , message_id=message_id)
             except:
                 pass
 
-        sent = await context.bot.send_message(chat_id=CHANNEL_ID, text=msg)
-        tracked_messages[CHANNEL_ID] = sent.message_id
-        await update.message.reply_text("Sent new message to channel.")
-        return
 
-    if chat.type == "private" and user.id != ADMIN_ID:
-        return await cmd_price(update, context)
-
-    await update.message.reply_text("No message to update.")
 
 async def bot_added(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for member in update.message.new_chat_members:
@@ -152,12 +184,10 @@ async def bot_added(update: Update, context: ContextTypes.DEFAULT_TYPE):
             date = get_date()
             msg = f"{date}\nCurrent USD price: {price} Rials"
             sent = await context.bot.send_message(chat_id=chat.id, text=msg)
-            tracked_messages[chat.id] = sent.message_id
+            await set_value(conn , chat_id=chat.id , message_id=sent.message_id)
+            
             print("Bot added to group:", chat.id)
 
-# --------------------------------------------
-# MAIN
-# --------------------------------------------
 
 def run_bot():
     if not API:
@@ -172,6 +202,9 @@ def run_bot():
     app.add_handler(CommandHandler("update", update_price))
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, bot_added))
 
+    # Initialize database connection
+    asyncio.get_event_loop().run_until_complete(init_db())
+    
     print("Bot running...")
     app.run_polling()  # v20+ manages the asyncio loop internally
 
