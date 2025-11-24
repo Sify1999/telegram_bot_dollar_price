@@ -49,11 +49,11 @@ async def get_value(conn, chat_id):
         "SELECT message_id FROM my_table WHERE chat_id=$1", chat_id
     )
 
-def reminder(context : ContextTypes.DEFAULT_TYPE):
+async def reminder(context : ContextTypes.DEFAULT_TYPE):
     today = date.today()
     delta = REFERENCE_DATE - today
     msg = f"{delta} روز مانده"
-    context.bot.send_message(chat_id=CHANNEL_ID , text=msg)
+    await context.bot.send_message(chat_id=CHANNEL_ID , text=msg)
 
 
 
