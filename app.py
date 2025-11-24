@@ -21,7 +21,7 @@ URL_DATE = "https://www.time.ir/"
 
 ADMIN_ID = 119822289
 CHANNEL_ID = -1003477481048
-CHANNEL_ID_2 = -1003027488793
+CHANNEL_ID_2 = os.getenv("CHANNEL_ID_2")
 
 tracked_messages = {}
 DOLLAR_PRICE = "Unknown"
