@@ -9,8 +9,11 @@ from telegram.ext import (
     ContextTypes,
     CommandHandler,
     MessageHandler,
-    filters
+    filters , 
+    Application
 )
+from datetime import time , date
+REFERENCE_DATE = date(2026, 9, 20)
 DATABASE_URL = os.getenv("DATABASE_URL") # your Railway PostgreSQL URL
 API = os.getenv("API")  # Your bot token from env variable
 URL_PRICE = "https://alanchand.com/currencies-price"
@@ -18,6 +21,7 @@ URL_DATE = "https://www.time.ir/"
 
 ADMIN_ID = 119822289
 CHANNEL_ID = -1003477481048
+CHANNEL_ID_2 = -1003027488793
 
 tracked_messages = {}
 DOLLAR_PRICE = "Unknown"
@@ -44,6 +48,28 @@ async def get_value(conn, chat_id):
     return await conn.fetchval(
         "SELECT message_id FROM my_table WHERE chat_id=$1", chat_id
     )
+
+def reminder(context : ContextTypes.DEFAULT_TYPE):
+    today = date.today()
+    delta = REFERENCE_DATE - today
+    msg = f"{delta} روز مانده"
+    context.bot.send_message(chat_id=CHANNEL_ID , text=msg)
+
+
+
+
+async def startup(app : Application):
+    app.job_queue.run_daily(
+        callback=reminder,
+        time= time(hour=1 , minute=36),
+        days=(0, 1, 2, 3, 4, 5, 6),   # every day
+    )
+    app.job_queue.run_once(reminder, when=5)
+    print("Test message will be sent in 5 seconds...")
+
+
+
+
 
 
 def persian_to_english_numbers(text):
@@ -195,7 +221,7 @@ def run_bot():
         return
 
     app = ApplicationBuilder().token(API).build()
-
+    app.job_queue.run_once(startup , when=0)
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("price", cmd_price))
     app.add_handler(CommandHandler("id", getID))
