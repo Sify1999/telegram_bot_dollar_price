@@ -60,12 +60,11 @@ async def reminder(context : ContextTypes.DEFAULT_TYPE):
 async def startup(app : Application):
     app.job_queue.run_daily(
         callback=reminder,
-        time= time(hour=1 , minute=36),
+        time= time(hour=0 , minute=0),
         days=(0, 1, 2, 3, 4, 5, 6),   # every day
     )
     app.job_queue.run_once(reminder, when=5)
     print("Test message will be sent in 5 seconds...")
-
 
 
 
@@ -220,7 +219,7 @@ def run_bot():
         return
 
     app = ApplicationBuilder().token(API).build()
-    app.job_queue.run_once(startup , when=0)
+    app.job_queue.run_once(startup , when=0 , data=app)
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("price", cmd_price))
     app.add_handler(CommandHandler("id", getID))
