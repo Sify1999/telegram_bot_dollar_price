@@ -52,6 +52,7 @@ async def get_value(conn, chat_id):
 async def reminder(context : ContextTypes.DEFAULT_TYPE):
     today = date.today()
     delta = REFERENCE_DATE - today
+    delta = delta.days
     msg = f"{delta} روز مانده"
     await context.bot.send_message(chat_id=CHANNEL_ID , text=msg)
 
