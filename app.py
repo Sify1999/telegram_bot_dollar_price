@@ -53,10 +53,8 @@ async def reminder(context : ContextTypes.DEFAULT_TYPE):
     today = date.today()
     delta = REFERENCE_DATE - today
     delta = delta.days
-    msg = f"{delta} روز مانده"
+    msg = f"{delta}"
     await context.bot.send_message(chat_id=CHANNEL_ID , text=msg)
-
-
 
 
 async def startup(app : Application):
