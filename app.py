@@ -13,6 +13,7 @@ from telegram.ext import (
     Application
 )
 from datetime import time , date
+from zoneinfo import ZoneInfo
 REFERENCE_DATE = date(2026, 9, 20)
 DATABASE_URL = os.getenv("DATABASE_URL") # your Railway PostgreSQL URL
 API = os.getenv("API")  # Your bot token from env variable
@@ -21,12 +22,12 @@ URL_DATE = "https://www.time.ir/"
 
 ADMIN_ID = 119822289
 CHANNEL_ID = -1003477481048
-CHANNEL_ID_2 = os.getenv("CHANNEL_ID_2")
+CHANNEL_ID_2 = -1003027488793
 
 tracked_messages = {}
 DOLLAR_PRICE = "Unknown"
 TODAY_DATE = "Unknown"
-
+iran_time = time(hour=0, minute=0, tzinfo=ZoneInfo("Asia/Tehran"))
 async def init_db():
     global conn
     try:
@@ -60,7 +61,7 @@ async def reminder(context : ContextTypes.DEFAULT_TYPE):
 async def startup(app : Application):
     app.job_queue.run_daily(
         callback=reminder,
-        time= time(hour=0 , minute=0),
+        time= iran_time,
         days=(0, 1, 2, 3, 4, 5, 6),   # every day
     )
     app.job_queue.run_once(reminder, when=5)
