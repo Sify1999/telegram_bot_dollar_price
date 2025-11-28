@@ -53,9 +53,9 @@ async def get_value(conn, chat_id):
 async def reminder(context : ContextTypes.DEFAULT_TYPE):
     today = date.today()
     delta = REFERENCE_DATE - today
-    delta = delta.days
+    delta = delta.days - 1
     msg = f"{delta}"
-    await context.bot.send_message(chat_id=CHANNEL_ID , text=msg)
+    await context.bot.send_message(chat_id=CHANNEL_ID_2 , text=msg)
 
 
 async def startup(app : Application):
@@ -64,8 +64,6 @@ async def startup(app : Application):
         time= iran_time,
         days=(0, 1, 2, 3, 4, 5, 6),   # every day
     )
-    app.job_queue.run_once(reminder, when=5)
-    print("Test message will be sent in 5 seconds...")
 
 
 
